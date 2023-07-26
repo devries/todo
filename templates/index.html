@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Who do that todo that you do?</title>
+  <link rel="icon" href="static/favicon.png" />
+  <script src="https://unpkg.com/htmx.org@1.9.4"
+    integrity="sha384-zUfuhFKKZCbHTY6aRR46gxiqszMk5tcHjsVFxnUo8VMus4kHGVdIYVbOYYNlKmHV"
+    crossorigin="anonymous"></script>
+  <script>
+    htmx.on("htmx:afterRequest", function (evt) {
+      el = document.getElementById('addition');
+      if (evt.target == el) {
+        el.reset();
+      }
+    });
+  </script>
+</head>
+
+<body style="padding: 50px;">
+  <h1>Todo</h1>
+  <form id="addition" hx-post="/add" hx-target="#list" hx-swap="beforeend">
+    <input type="text" name="newTodo" placeholder="Todo..." size="80">
+    <button type="submit">Add</button>
+  </form>
+  <div>
+    <ul style="list-style-type: none;" id="list">
+      {{ range . }}
+      {{ template "todoitem.html" . }}
+      {{ end }}
+    </ul>
+  </div>
+</body>
+
+</html>
