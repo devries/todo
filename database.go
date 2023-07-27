@@ -13,9 +13,7 @@ type TodoItem struct {
 
 type TodoList []TodoItem
 
-var db *sql.DB
-
-func createDatabase() error {
+func createDatabase(db *sql.DB) error {
 	sqlStatement := `create table if not exists items(id integer primary key autoincrement, value TEXT)`
 
 	_, err := db.Exec(sqlStatement)
@@ -23,7 +21,7 @@ func createDatabase() error {
 	return err
 }
 
-func getTodos() (TodoList, error) {
+func getTodos(db *sql.DB) (TodoList, error) {
 	rows, err := db.Query("select id, value from items")
 	if err != nil {
 		return nil, err
@@ -45,7 +43,7 @@ func getTodos() (TodoList, error) {
 	return ret, rows.Err()
 }
 
-func addTodo(text string) (int64, error) {
+func addTodo(db *sql.DB, text string) (int64, error) {
 	res, err := db.Exec("insert into items (value) VALUES (?)", text)
 	if err != nil {
 		return 0, err
@@ -55,12 +53,12 @@ func addTodo(text string) (int64, error) {
 	return id, err
 }
 
-func updateTodo(t TodoItem) error {
+func updateTodo(db *sql.DB, t TodoItem) error {
 	_, err := db.Exec("update items set value=? where id=?", t.Text, t.Id)
 	return err
 }
 
-func deleteTodo(tid int64) error {
+func deleteTodo(db *sql.DB, tid int64) error {
 	_, err := db.Exec("delete from items where id=?", tid)
 	return err
 }

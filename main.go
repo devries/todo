@@ -35,7 +35,7 @@ func main() {
 	mux := flow.New()
 	mux.Use(loggingHandler)
 
-	db, err = sql.Open("sqlite3", "./todo.db")
+	db, err := sql.Open("sqlite3", "./todo.db")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,83 +45,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err = createDatabase(); err != nil {
+	if err = createDatabase(db); err != nil {
 		log.Fatal(err)
 	}
 
 	templates := template.Must(template.New("web").ParseFS(templateFiles, "templates/*"))
-	for _, t := range templates.Templates() {
-		log.Print(t.Name())
-	}
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-			return
-		}
+	handlers := &Env{db, templates}
 
-		dtl, err := getTodos()
-		if err != nil {
-			log.Printf("Error getting todo list: %s", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		indexTemplate := templates.Lookup("index.html")
-		err = indexTemplate.Execute(w, dtl)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
-	}, "GET")
-
-	mux.HandleFunc("/delete/:id|^[0-9]+$", func(w http.ResponseWriter, r *http.Request) {
-		param := flow.Param(r.Context(), "id")
-		val, err := strconv.ParseInt(param, 10, 64)
-		if err != nil {
-			log.Printf("Unable to convert %s to integer: %s", param, err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-		err = deleteTodo(val)
-		if err != nil {
-			log.Printf("Unable to delete entry: %s", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-		fmt.Fprintf(w, "")
-	}, "DELETE")
-
-	mux.HandleFunc("/add", func(w http.ResponseWriter, r *http.Request) {
-		err := r.ParseForm()
-		if err != nil {
-			log.Printf("Error parsing form: %s", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		text := r.FormValue("newTodo")
-		if text == "" {
-			log.Printf("Entry is empty")
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		tdId, err := addTodo(text)
-		if err != nil {
-			log.Printf("Error writing todo item: %s", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		tdi := TodoItem{tdId, text}
-		respTemplate := templates.Lookup("todoitem.html")
-		err = respTemplate.Execute(w, tdi)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
-	}, "POST")
-
+	mux.HandleFunc("/", handlers.indexHandlerFunc, "GET")
+	mux.HandleFunc("/delete/:id|^[0-9]+$", handlers.deleteHandlerFunc, "DELETE")
+	mux.HandleFunc("/add", handlers.addHandlerFunc, "POST")
 	mux.Handle("/static/...", http.FileServer(http.FS(staticFiles)))
 
 	server := &http.Server{
@@ -131,4 +64,78 @@ func main() {
 
 	log.Printf("Server starting on %s", bind)
 	log.Fatal(server.ListenAndServe())
+}
+
+type Env struct {
+	db        *sql.DB
+	templates *template.Template
+}
+
+func (e *Env) indexHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	dtl, err := getTodos(e.db)
+	if err != nil {
+		log.Printf("Error getting todo list: %s", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	indexTemplate := e.templates.Lookup("index.html")
+	err = indexTemplate.Execute(w, dtl)
+	if err != nil {
+		log.Printf("Error rendering template: %s", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+}
+
+func (e *Env) deleteHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	param := flow.Param(r.Context(), "id")
+	val, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		log.Printf("Unable to convert %s to integer: %s", param, err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	err = deleteTodo(e.db, val)
+	if err != nil {
+		log.Printf("Unable to delete entry: %s", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "")
+}
+
+func (e *Env) addHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Printf("Error parsing form: %s", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	text := r.FormValue("newTodo")
+	if text == "" {
+		log.Printf("Entry is empty")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	tdId, err := addTodo(e.db, text)
+	if err != nil {
+		log.Printf("Error writing todo item: %s", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	tdi := TodoItem{tdId, text}
+	respTemplate := e.templates.Lookup("todoitem.html")
+	err = respTemplate.Execute(w, tdi)
+	if err != nil {
+		log.Printf("Error rendering template: %s", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
 }
