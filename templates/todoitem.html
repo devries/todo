@@ -1,2 +1,1 @@
-<li><span style="color: #0000ee; padding-right: 20px; cursor: pointer;" hx-target="closest li" hx-swap="outerHTML"
-    hx-delete="/delete/{{ .Id }}">X</span>{{ .Text }}</li>
+<li><span hx-target="closest li" hx-swap="outerHTML" hx-delete="/delete/{{ .Id }}">&times;</span>{{ .Text }}</li>

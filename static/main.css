@@ -1,0 +1,41 @@
+body {
+  max-width: 800px;
+  margin: 0 auto !important;
+  padding: 0 5px;
+  float: none !important;
+}
+
+h1 {
+  padding: 20px 0;
+}
+
+.hform {
+  display: flex;
+  flex-direction: row;
+}
+
+.hform input {
+  flex-grow: 1;
+  padding: 10px;
+  margin-right: 10px;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0px;
+}
+
+ul li {
+  margin: 5px 0;
+}
+
+ul li span {
+  color: #0000ee;
+  padding-right: 20px;
+  cursor: pointer;
+}
+
+#send-error {
+  display: none;
+  color: red;
+}

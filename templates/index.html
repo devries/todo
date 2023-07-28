@@ -7,27 +7,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Who do that todo that you do?</title>
   <link rel="icon" href="static/favicon.png" />
-  <script src="https://unpkg.com/htmx.org@1.9.4"
-    integrity="sha384-zUfuhFKKZCbHTY6aRR46gxiqszMk5tcHjsVFxnUo8VMus4kHGVdIYVbOYYNlKmHV"
-    crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="static/main.css" />
+  <script src="static/htmx.min.js"></script>
   <script>
     htmx.on("htmx:afterRequest", function (evt) {
       el = document.getElementById('addition');
       if (evt.target == el) {
         el.reset();
       }
+      err = document.getElementById('send-error');
+      err.style.display = "none";
+    });
+
+    htmx.on("htmx:sendError", function (evt) {
+      el = document.getElementById('send-error');
+      el.style.display = "block";
+      console.log(evt);
     });
   </script>
 </head>
 
-<body style="padding: 50px;">
+<body>
   <h1>Todo</h1>
-  <form id="addition" hx-post="/add" hx-target="#list" hx-swap="beforeend">
-    <input type="text" name="newTodo" placeholder="Todo..." size="80">
+  <form class="hform" id="addition" hx-post="/add" hx-target="#list" hx-swap="beforeend">
+    <input type="text" name="newTodo" placeholder="Todo...">
     <button type="submit">Add</button>
   </form>
+  <p id="send-error">Error communicating with server</p>
   <div>
-    <ul style="list-style-type: none;" id="list">
+    <ul id="list">
       {{ range . }}
       {{ template "todoitem.html" . }}
       {{ end }}

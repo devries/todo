@@ -72,11 +72,6 @@ type Env struct {
 }
 
 func (e *Env) indexHandlerFunc(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-
 	dtl, err := getTodos(e.db)
 	if err != nil {
 		log.Printf("Error getting todo list: %s", err)
@@ -124,14 +119,14 @@ func (e *Env) addHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tdId, err := addTodo(e.db, text)
+	tdid, err := addTodo(e.db, text)
 	if err != nil {
 		log.Printf("Error writing todo item: %s", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	tdi := TodoItem{tdId, text}
+	tdi := TodoItem{tdid, text}
 	respTemplate := e.templates.Lookup("todoitem.html")
 	err = respTemplate.Execute(w, tdi)
 	if err != nil {
