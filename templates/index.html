@@ -11,18 +11,25 @@
   <script src="static/htmx.min.js"></script>
   <script>
     htmx.on("htmx:afterRequest", function (evt) {
-      el = document.getElementById('addition');
+      el = htmx.find('#addition');
       if (evt.target == el) {
         el.reset();
       }
-      err = document.getElementById('send-error');
-      err.style.display = "none";
     });
 
+    htmx.on("htmx:beforeRequest", function (evt) {
+      el = htmx.find('#send-error');
+      el.style.display = "none";
+    })
+
     htmx.on("htmx:sendError", function (evt) {
-      el = document.getElementById('send-error');
+      el = htmx.find('#send-error');
       el.style.display = "block";
-      console.log(evt);
+    });
+
+    htmx.on("htmx:responseError", function (evt) {
+      el = htmx.find('#send-error');
+      el.style.display = "block";
     });
   </script>
 </head>
