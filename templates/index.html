@@ -19,17 +19,20 @@
 
     htmx.on("htmx:beforeRequest", function (evt) {
       el = htmx.find('#send-error');
-      el.style.display = "none";
+      htmx.addClass(el, "hide");
     })
 
     htmx.on("htmx:sendError", function (evt) {
       el = htmx.find('#send-error');
-      el.style.display = "block";
+      el.innerHTML = "Unable to connect to server";
+      htmx.removeClass(el, "hide");
     });
 
     htmx.on("htmx:responseError", function (evt) {
       el = htmx.find('#send-error');
-      el.style.display = "block";
+      error = evt.detail.xhr.response;
+      el.innerHTML = error;
+      htmx.removeClass(el, "hide");
     });
   </script>
 </head>
@@ -40,7 +43,7 @@
     <input type="text" name="newTodo" placeholder="Todo...">
     <button type="submit">Add</button>
   </form>
-  <p id="send-error">Error communicating with server</p>
+  <p class="hide" id="send-error">Error communicating with server</p>
   <div>
     <ul id="list">
       {{ range . }}

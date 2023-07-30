@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -59,6 +60,16 @@ func updateTodo(db *sql.DB, t TodoItem) error {
 }
 
 func deleteTodo(db *sql.DB, tid int64) error {
-	_, err := db.Exec("delete from items where id=?", tid)
+	res, err := db.Exec("delete from items where id=?", tid)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		err = fmt.Errorf("%d rows were affected in delete, expected only 1 row to be deleted", n)
+	}
 	return err
 }

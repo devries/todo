@@ -36,6 +36,9 @@ ul li span {
 }
 
 #send-error {
-  display: none;
   color: red;
+}
+
+.hide {
+  display: none;
 }

@@ -92,13 +92,13 @@ func (e *Env) deleteHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	val, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
 		log.Printf("Unable to convert %s to integer: %s", param, err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, "Delete expects and integer path element", http.StatusBadRequest)
 		return
 	}
 	err = deleteTodo(e.db, val)
 	if err != nil {
-		log.Printf("Unable to delete entry: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		log.Printf("Unable to delete entry %d: %s", val, err)
+		http.Error(w, "Unable to delete entry", http.StatusInternalServerError)
 		return
 	}
 	fmt.Fprintf(w, "")
@@ -108,21 +108,21 @@ func (e *Env) addHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Printf("Error parsing form: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, "Error parsing add request", http.StatusBadRequest)
 		return
 	}
 
 	text := r.FormValue("newTodo")
 	if text == "" {
-		log.Printf("Entry is empty")
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		log.Printf("Entry Empty")
+		http.Error(w, "Empty todo items are not accepted", http.StatusBadRequest)
 		return
 	}
 
 	tdid, err := addTodo(e.db, text)
 	if err != nil {
 		log.Printf("Error writing todo item: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, "Unable to write new entry", http.StatusInternalServerError)
 		return
 	}
 
@@ -131,6 +131,6 @@ func (e *Env) addHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	err = respTemplate.Execute(w, tdi)
 	if err != nil {
 		log.Printf("Error rendering template: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, "Unable to render response", http.StatusInternalServerError)
 	}
 }
