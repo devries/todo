@@ -33,6 +33,7 @@ ul li span {
   color: #0000ee;
   padding-right: 20px;
   cursor: pointer;
+  font-size: 1.3em;
 }
 
 #send-error {
