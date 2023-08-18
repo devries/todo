@@ -54,6 +54,7 @@ func main() {
 
 	mux.HandleFunc("/", handlers.indexHandlerFunc, "GET")
 	mux.HandleFunc("/delete/:id|^[0-9]+$", handlers.deleteHandlerFunc, "DELETE")
+	mux.HandleFunc("/do/:id|^[0-9]+$", handlers.doHandlerFunc, "GET")
 	mux.HandleFunc("/add", handlers.addHandlerFunc, "POST")
 	mux.Handle("/static/...", http.FileServer(http.FS(staticFiles)))
 
@@ -87,12 +88,42 @@ func (e *Env) indexHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (e *Env) doHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	param := flow.Param(r.Context(), "id")
+	val, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		log.Printf("Unable to convert %s to integer: %s", param, err)
+		http.Error(w, "Markdone expects an integer path element", http.StatusBadRequest)
+		return
+	}
+	err = markTodoDone(e.db, val)
+	if err != nil {
+		log.Printf("Unable to mark entry %d done: %s", val, err)
+		http.Error(w, "Unable to mark entry as done", http.StatusInternalServerError)
+		return
+	}
+
+	tdi, err := getOneTodo(e.db, val)
+	if err != nil {
+		log.Printf("Unable to retrieve updated todo item %d: %s", val, err)
+		http.Error(w, "Unable to retrieve marked entry", http.StatusInternalServerError)
+		return
+	}
+
+	respTemplate := e.templates.Lookup("todoitem.html")
+	err = respTemplate.Execute(w, tdi)
+	if err != nil {
+		log.Printf("Error rendering template: %s", err)
+		http.Error(w, "Unable to render response", http.StatusInternalServerError)
+	}
+}
+
 func (e *Env) deleteHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	param := flow.Param(r.Context(), "id")
 	val, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
 		log.Printf("Unable to convert %s to integer: %s", param, err)
-		http.Error(w, "Delete expects and integer path element", http.StatusBadRequest)
+		http.Error(w, "Delete expects an integer path element", http.StatusBadRequest)
 		return
 	}
 	err = deleteTodo(e.db, val)
@@ -126,7 +157,7 @@ func (e *Env) addHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tdi := TodoItem{tdid, text}
+	tdi := TodoItem{tdid, text, false}
 	respTemplate := e.templates.Lookup("todoitem.html")
 	err = respTemplate.Execute(w, tdi)
 	if err != nil {

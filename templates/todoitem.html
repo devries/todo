@@ -1,1 +1,5 @@
-<li><span hx-target="closest li" hx-swap="outerHTML" hx-delete="/delete/{{ .Id }}">&times;</span>{{ .Text }}</li>
+{{ if .Done -}}
+<li><span hx-target="closest li" hx-swap="outerHTML" hx-delete="/delete/{{ .Id }}">&times;</span><s>{{ .Text }}</s></li>
+{{ else -}}
+<li><span hx-target="closest li" hx-swap="outerHTML" hx-get="/do/{{ .Id }}">&times;</span>{{ .Text }}</li>
+{{ end -}}
