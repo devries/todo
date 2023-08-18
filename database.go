@@ -66,6 +66,11 @@ func markTodoDone(db *sql.DB, tid int64) error {
 	return err
 }
 
+func markTodoNotDone(db *sql.DB, tid int64) error {
+	_, err := db.Exec("update items set done=? where id=?", false, tid)
+	return err
+}
+
 func deleteTodo(db *sql.DB, tid int64) error {
 	res, err := db.Exec("delete from items where id=?", tid)
 	if err != nil {

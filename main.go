@@ -55,6 +55,7 @@ func main() {
 	mux.HandleFunc("/", handlers.indexHandlerFunc, "GET")
 	mux.HandleFunc("/delete/:id|^[0-9]+$", handlers.deleteHandlerFunc, "DELETE")
 	mux.HandleFunc("/do/:id|^[0-9]+$", handlers.doHandlerFunc, "GET")
+	mux.HandleFunc("/undo/:id|^[0-9]+$", handlers.undoHandlerFunc, "GET")
 	mux.HandleFunc("/add", handlers.addHandlerFunc, "POST")
 	mux.Handle("/static/...", http.FileServer(http.FS(staticFiles)))
 
@@ -100,6 +101,36 @@ func (e *Env) doHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Unable to mark entry %d done: %s", val, err)
 		http.Error(w, "Unable to mark entry as done", http.StatusInternalServerError)
+		return
+	}
+
+	tdi, err := getOneTodo(e.db, val)
+	if err != nil {
+		log.Printf("Unable to retrieve updated todo item %d: %s", val, err)
+		http.Error(w, "Unable to retrieve marked entry", http.StatusInternalServerError)
+		return
+	}
+
+	respTemplate := e.templates.Lookup("todoitem.html")
+	err = respTemplate.Execute(w, tdi)
+	if err != nil {
+		log.Printf("Error rendering template: %s", err)
+		http.Error(w, "Unable to render response", http.StatusInternalServerError)
+	}
+}
+
+func (e *Env) undoHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	param := flow.Param(r.Context(), "id")
+	val, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		log.Printf("Unable to convert %s to integer: %s", param, err)
+		http.Error(w, "Markundone expects an integer path element", http.StatusBadRequest)
+		return
+	}
+	err = markTodoNotDone(e.db, val)
+	if err != nil {
+		log.Printf("Unable to mark entry %d not done: %s", val, err)
+		http.Error(w, "Unable to mark entry as not done", http.StatusInternalServerError)
 		return
 	}
 
