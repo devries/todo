@@ -11,9 +11,11 @@
   <script src="static/htmx.min.js"></script>
   <script>
     htmx.on("htmx:afterRequest", function (evt) {
-      el = htmx.find('#addition');
-      if (evt.target == el) {
-        el.reset();
+      if (evt.detail.successful == true) {
+        el = htmx.find('#addition');
+        if (evt.target == el) {
+          el.reset();
+        }
       }
     });
 
