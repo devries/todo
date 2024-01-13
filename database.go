@@ -8,9 +8,9 @@ import (
 )
 
 type TodoItem struct {
-	Id   int64
-	Text string
-	Done bool
+	Id   int64  `json:"id"`
+	Text string `json:"text"`
+	Done bool   `json:"done"`
 }
 
 type TodoList []TodoItem

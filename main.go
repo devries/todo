@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -52,11 +53,14 @@ func main() {
 	templates := template.Must(template.New("web").ParseFS(templateFiles, "templates/*"))
 	handlers := &Env{db, templates}
 
+	// HTML and API methods (if Accept is set to application/json)
 	mux.HandleFunc("/", handlers.indexHandlerFunc, "GET")
 	mux.HandleFunc("/delete/:id|^[0-9]+$", handlers.deleteHandlerFunc, "DELETE")
 	mux.HandleFunc("/do/:id|^[0-9]+$", handlers.doHandlerFunc, "GET")
 	mux.HandleFunc("/undo/:id|^[0-9]+$", handlers.undoHandlerFunc, "GET")
 	mux.HandleFunc("/add", handlers.addHandlerFunc, "POST")
+
+	// Static files
 	mux.Handle("/static/...", http.FileServer(http.FS(staticFiles)))
 
 	server := &http.Server{
@@ -81,11 +85,21 @@ func (e *Env) indexHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	indexTemplate := e.templates.Lookup("index.html")
-	err = indexTemplate.Execute(w, dtl)
-	if err != nil {
-		log.Printf("Error rendering template: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	switch r.Header.Get("Accept") {
+	case "application/json":
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(dtl); err != nil {
+			log.Printf("Error encoding response to json: %s", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+	default:
+		indexTemplate := e.templates.Lookup("index.html")
+		err = indexTemplate.Execute(w, dtl)
+		if err != nil {
+			log.Printf("Error rendering template: %s", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -111,11 +125,21 @@ func (e *Env) doHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respTemplate := e.templates.Lookup("todoitem.html")
-	err = respTemplate.Execute(w, tdi)
-	if err != nil {
-		log.Printf("Error rendering template: %s", err)
-		http.Error(w, "Unable to render response", http.StatusInternalServerError)
+	switch r.Header.Get("Accept") {
+	case "application/json":
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(tdi); err != nil {
+			log.Printf("Error encoding response to json: %s", err)
+			http.Error(w, "Unable to render response", http.StatusInternalServerError)
+		}
+	default:
+		respTemplate := e.templates.Lookup("todoitem.html")
+		err = respTemplate.Execute(w, tdi)
+		if err != nil {
+			log.Printf("Error rendering template: %s", err)
+			http.Error(w, "Unable to render response", http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -141,11 +165,21 @@ func (e *Env) undoHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respTemplate := e.templates.Lookup("todoitem.html")
-	err = respTemplate.Execute(w, tdi)
-	if err != nil {
-		log.Printf("Error rendering template: %s", err)
-		http.Error(w, "Unable to render response", http.StatusInternalServerError)
+	switch r.Header.Get("Accept") {
+	case "application/json":
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(tdi); err != nil {
+			log.Printf("Error encoding response to json: %s", err)
+			http.Error(w, "Unable to render response", http.StatusInternalServerError)
+		}
+	default:
+		respTemplate := e.templates.Lookup("todoitem.html")
+		err = respTemplate.Execute(w, tdi)
+		if err != nil {
+			log.Printf("Error rendering template: %s", err)
+			http.Error(w, "Unable to render response", http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -163,7 +197,13 @@ func (e *Env) deleteHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to delete entry", http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "")
+
+	switch r.Header.Get("Accept") {
+	case "application/json":
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		fmt.Fprintf(w, "")
+	}
 }
 
 func (e *Env) addHandlerFunc(w http.ResponseWriter, r *http.Request) {
@@ -189,10 +229,20 @@ func (e *Env) addHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tdi := TodoItem{tdid, text, false}
-	respTemplate := e.templates.Lookup("todoitem.html")
-	err = respTemplate.Execute(w, tdi)
-	if err != nil {
-		log.Printf("Error rendering template: %s", err)
-		http.Error(w, "Unable to render response", http.StatusInternalServerError)
+	switch r.Header.Get("Accept") {
+	case "application/json":
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(tdi); err != nil {
+			log.Printf("Error encoding response to json: %s", err)
+			http.Error(w, "Unable to render response", http.StatusInternalServerError)
+		}
+	default:
+		respTemplate := e.templates.Lookup("todoitem.html")
+		err = respTemplate.Execute(w, tdi)
+		if err != nil {
+			log.Printf("Error rendering template: %s", err)
+			http.Error(w, "Unable to render response", http.StatusInternalServerError)
+		}
 	}
 }
