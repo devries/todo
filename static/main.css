@@ -43,3 +43,8 @@ ul li span {
 .hide {
   display: none;
 }
+
+.footer {
+  padding-top: 20px;
+  text-align: center;
+}
