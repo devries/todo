@@ -6,7 +6,7 @@ COPY . .
 RUN set -x && \
     go build -o /out/goapp
 
-FROM golang:1.22
+FROM debian:bookworm-slim
 COPY --from=build /out/goapp /app/goapp
 WORKDIR /app
 CMD ["/app/goapp"]
