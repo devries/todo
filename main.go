@@ -114,8 +114,7 @@ func (e *Env) indexHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	default:
 		// Otherwise, render the index template.
 		indexTemplate := e.templates.Lookup("index.html")
-		err = indexTemplate.Execute(w, dtl)
-		if err != nil {
+		if err := indexTemplate.Execute(w, dtl); err != nil {
 			log.Printf("Error rendering template: %s", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
@@ -160,8 +159,7 @@ func (e *Env) doHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	default:
 		// Otherwise, render the todoitem template.
 		respTemplate := e.templates.Lookup("todoitem.html")
-		err = respTemplate.Execute(w, tdi)
-		if err != nil {
+		if err := respTemplate.Execute(w, tdi); err != nil {
 			log.Printf("Error rendering template: %s", err)
 			http.Error(w, "Unable to render response", http.StatusInternalServerError)
 		}
@@ -206,8 +204,7 @@ func (e *Env) undoHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	default:
 		// Otherwise, render the todoitem template.
 		respTemplate := e.templates.Lookup("todoitem.html")
-		err = respTemplate.Execute(w, tdi)
-		if err != nil {
+		if err := respTemplate.Execute(w, tdi); err != nil {
 			log.Printf("Error rendering template: %s", err)
 			http.Error(w, "Unable to render response", http.StatusInternalServerError)
 		}
@@ -282,8 +279,7 @@ func (e *Env) addHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	default:
 		// Otherwise, render the todoitem template.
 		respTemplate := e.templates.Lookup("todoitem.html")
-		err = respTemplate.Execute(w, tdi)
-		if err != nil {
+		if err := respTemplate.Execute(w, tdi); err != nil {
 			log.Printf("Error rendering template: %s", err)
 			http.Error(w, "Unable to render response", http.StatusInternalServerError)
 		}
