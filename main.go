@@ -121,9 +121,46 @@ func (e *Env) indexHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// updateTodoStatusAndGetItem updates the done status of a todo item and retrieves the updated item.
+func (e *Env) updateTodoStatusAndGetItem(id int64, done bool) (TodoItem, error) {
+	var err error
+	if done {
+		err = markTodoDone(e.db, id)
+	} else {
+		err = markTodoNotDone(e.db, id)
+	}
+	if err != nil {
+		return TodoItem{}, fmt.Errorf("unable to update entry %d status to %t: %w", id, done, err)
+	}
+
+	tdi, err := getOneTodo(e.db, id)
+	if err != nil {
+		return TodoItem{}, fmt.Errorf("unable to retrieve updated todo item %d: %w", id, err)
+	}
+	return tdi, nil
+}
+
+// renderTodoItemResponse renders a single todo item as JSON or HTML.
+func (e *Env) renderTodoItemResponse(w http.ResponseWriter, r *http.Request, tdi TodoItem) {
+	switch r.Header.Get("Accept") {
+	case "application/json":
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(tdi); err != nil {
+			log.Printf("Error encoding response to json: %s", err)
+			http.Error(w, "Unable to render response", http.StatusInternalServerError)
+		}
+	default:
+		respTemplate := e.templates.Lookup("todoitem.html")
+		if err := respTemplate.Execute(w, tdi); err != nil {
+			log.Printf("Error rendering template: %s", err)
+			http.Error(w, "Unable to render response", http.StatusInternalServerError)
+		}
+	}
+}
+
 // doHandlerFunc handles marking a todo as done.
 func (e *Env) doHandlerFunc(w http.ResponseWriter, r *http.Request) {
-	// Get the ID from the URL.
 	param := flow.Param(r.Context(), "id")
 	val, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
@@ -131,44 +168,19 @@ func (e *Env) doHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Markdone expects an integer path element", http.StatusBadRequest)
 		return
 	}
-	// Mark the todo as done in the database.
-	err = markTodoDone(e.db, val)
+
+	tdi, err := e.updateTodoStatusAndGetItem(val, true)
 	if err != nil {
-		log.Printf("Unable to mark entry %d done: %s", val, err)
+		log.Printf("Error marking entry %d done: %s", val, err)
 		http.Error(w, "Unable to mark entry as done", http.StatusInternalServerError)
 		return
 	}
 
-	// Get the updated todo item from the database.
-	tdi, err := getOneTodo(e.db, val)
-	if err != nil {
-		log.Printf("Unable to retrieve updated todo item %d: %s", val, err)
-		http.Error(w, "Unable to retrieve marked entry", http.StatusInternalServerError)
-		return
-	}
-
-	// Respond with JSON if the Accept header is set to application/json.
-	switch r.Header.Get("Accept") {
-	case "application/json":
-		encoder := json.NewEncoder(w)
-		encoder.SetEscapeHTML(false)
-		if err := encoder.Encode(tdi); err != nil {
-			log.Printf("Error encoding response to json: %s", err)
-			http.Error(w, "Unable to render response", http.StatusInternalServerError)
-		}
-	default:
-		// Otherwise, render the todoitem template.
-		respTemplate := e.templates.Lookup("todoitem.html")
-		if err := respTemplate.Execute(w, tdi); err != nil {
-			log.Printf("Error rendering template: %s", err)
-			http.Error(w, "Unable to render response", http.StatusInternalServerError)
-		}
-	}
+	e.renderTodoItemResponse(w, r, tdi)
 }
 
 // undoHandlerFunc handles marking a todo as not done.
 func (e *Env) undoHandlerFunc(w http.ResponseWriter, r *http.Request) {
-	// Get the ID from the URL.
 	param := flow.Param(r.Context(), "id")
 	val, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
@@ -176,44 +188,19 @@ func (e *Env) undoHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Markundone expects an integer path element", http.StatusBadRequest)
 		return
 	}
-	// Mark the todo as not done in the database.
-	err = markTodoNotDone(e.db, val)
+
+	tdi, err := e.updateTodoStatusAndGetItem(val, false)
 	if err != nil {
-		log.Printf("Unable to mark entry %d not done: %s", val, err)
+		log.Printf("Error marking entry %d not done: %s", val, err)
 		http.Error(w, "Unable to mark entry as not done", http.StatusInternalServerError)
 		return
 	}
 
-	// Get the updated todo item from the database.
-	tdi, err := getOneTodo(e.db, val)
-	if err != nil {
-		log.Printf("Unable to retrieve updated todo item %d: %s", val, err)
-		http.Error(w, "Unable to retrieve marked entry", http.StatusInternalServerError)
-		return
-	}
-
-	// Respond with JSON if the Accept header is set to application/json.
-	switch r.Header.Get("Accept") {
-	case "application/json":
-		encoder := json.NewEncoder(w)
-		encoder.SetEscapeHTML(false)
-		if err := encoder.Encode(tdi); err != nil {
-			log.Printf("Error encoding response to json: %s", err)
-			http.Error(w, "Unable to render response", http.StatusInternalServerError)
-		}
-	default:
-		// Otherwise, render the todoitem template.
-		respTemplate := e.templates.Lookup("todoitem.html")
-		if err := respTemplate.Execute(w, tdi); err != nil {
-			log.Printf("Error rendering template: %s", err)
-			http.Error(w, "Unable to render response", http.StatusInternalServerError)
-		}
-	}
+	e.renderTodoItemResponse(w, r, tdi)
 }
 
 // deleteHandlerFunc handles deleting a todo.
 func (e *Env) deleteHandlerFunc(w http.ResponseWriter, r *http.Request) {
-	// Get the ID from the URL.
 	param := flow.Param(r.Context(), "id")
 	val, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
@@ -221,7 +208,6 @@ func (e *Env) deleteHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Delete expects an integer path element", http.StatusBadRequest)
 		return
 	}
-	// Delete the todo from the database.
 	err = deleteTodo(e.db, val)
 	if err != nil {
 		log.Printf("Unable to delete entry %d: %s", val, err)
